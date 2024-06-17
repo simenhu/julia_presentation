@@ -2,6 +2,7 @@ using Plots
 using Distributed
 using Zygote
 using Measurements
+using Base.Threads: @threads
 
 # Physical constants
 const g = 9.81  # Gravity (m/s^2)
@@ -85,10 +86,18 @@ addprocs(4)
 end
 
 angles = range(0, stop=π/2, length=10)
+
 @distributed for i in 1:length(angles)
     trajectory = simulate_projectile(angles[i], velocity)
     println("Range at angle $(angles[i]): ", extract_range(trajectory))
 end
+
+@threads for i in 1:length(angles)
+    id = Threads.threadid()
+    trajectory = simulate_projectile(angles[i], velocity)
+    println("Range at angle $(angles[i]): ", extract_range(trajectory), " (Thread: $id)")
+end
+
 
 # Step 3: Automatic Differentiation
 range_func(angle, velocity) = extract_range(simulate_projectile(angle, velocity))
@@ -103,3 +112,9 @@ trajectory_uncertain = simulate_projectile(angle_uncertain, velocity_uncertain)
 range_uncertain = extract_range(trajectory_uncertain)
 println("Range with uncertainty: ", range_uncertain)
 println("Uncertainty in the range: ", Measurements.uncertainty(range_uncertain))
+y = map(x -> Measurements.value(x[2]), trajectory_uncertain)
+y_uncertainty = map(x -> Measurements.uncertainty(x[2]), trajectory_uncertain)
+x = map(x -> Measurements.value(x[1]), trajectory_uncertain)
+plot(x, y, xlabel="x", ylabel="y", label="Trajectory (Uncertain)")
+plot!(x, y .+ y_uncertainty, label="Upper Bound", color=:red)
+plot!(x, y .- y_uncertainty, label="Lower Bound", color=:red)
