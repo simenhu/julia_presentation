@@ -96,10 +96,10 @@ gradient = Zygote.gradient(range_func, angle, velocity)
 println("Gradient: ", gradient)
 
 # Step 4: Uncertainty Quantification
-angle_uncertain = Measurement(π/4, 0.1)
-velocity_uncertain = Measurement(20.0, 1.0)
+angle_uncertain = measurement(π/4, 0.1)
+velocity_uncertain = measurement(20.0, 1.0)
 
 trajectory_uncertain = simulate_projectile(angle_uncertain, velocity_uncertain)
 range_uncertain = extract_range(trajectory_uncertain)
 println("Range with uncertainty: ", range_uncertain)
-println("Uncertainty in the range: ", uncertainty(range_uncertain))
+println("Uncertainty in the range: ", Measurements.uncertainty(range_uncertain))
