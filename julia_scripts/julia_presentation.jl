@@ -15,10 +15,10 @@ macro bind(def, element)
 end
 
 # ╔═╡ 63ecaddf-d7e5-4a0d-b9bb-00e5a96802a0
-using Measurements, Plots, Statistics
-
-# ╔═╡ 57554c55-e96c-4ba1-8f49-94d3d8dd9fe2
 begin
+	using Measurements
+	using Plots
+	using Statistics
 	using Distributed
 	using Zygote
 	using Base.Threads: @threads
@@ -95,10 +95,10 @@ begin
 end
 
 # ╔═╡ c52b0ae1-c722-4b77-95ac-583bdd338581
-@bind angle Slider(0.5:(π/4))
+@bind angle Slider(0:0.01:(π/2), default=0.5)
 
 # ╔═╡ e0dabab1-0a05-417f-b500-f8fd4ed9b4f2
-velocity = 20.0
+@bind velocity Slider( 0:0.01:40.0, default=20)
 
 # ╔═╡ fe0411d4-801e-4234-ae2b-fab6cc782d7d
 
@@ -106,10 +106,16 @@ trajectory = simulate_projectile(angle, velocity)
 
 
 # ╔═╡ eb7217a0-cf8c-45d9-bb47-68f8697eed01
-plot(map(x -> x[1], trajectory), map(x -> x[2], trajectory), xlabel="x", ylabel="y", label="Trajectory")
+begin
+	plot(map(x -> x[1], trajectory), map(x -> x[2], trajectory), xlabel="x", ylabel="y", label="Trajectory", xlimits=(0,40), ylimits=(0,10))
+	plot!([extract_range(trajectory)], [0], color=:red, markersize=10, marker=:circle)
+end
 
 # ╔═╡ 18dba5e2-674b-433c-b8b7-df061ef66f12
-println("Range: ", extract_range(trajectory))
+extract_range(trajectory)
+
+# ╔═╡ 53c878af-b57a-4f76-bf0f-240bba39485b
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1501,7 +1507,6 @@ version = "1.4.1+1"
 # ╟─90b58434-9d12-40e7-b0fa-543fc09412ef
 # ╠═f0b1e0ba-642e-4a86-b5d7-8b6ecfc57f39
 # ╟─970fc82e-4aaf-4234-9e3e-e88a5f5a5e4b
-# ╠═57554c55-e96c-4ba1-8f49-94d3d8dd9fe2
 # ╟─83bc7113-f3ed-4be0-9d65-8d0ebf809586
 # ╠═3847feba-0d5a-445d-9b0d-a57bec5a944d
 # ╠═8eb28375-eb88-4780-b937-a51ab0111146
@@ -1511,5 +1516,6 @@ version = "1.4.1+1"
 # ╟─fe0411d4-801e-4234-ae2b-fab6cc782d7d
 # ╠═eb7217a0-cf8c-45d9-bb47-68f8697eed01
 # ╠═18dba5e2-674b-433c-b8b7-df061ef66f12
+# ╠═53c878af-b57a-4f76-bf0f-240bba39485b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
