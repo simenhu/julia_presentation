@@ -29,7 +29,7 @@ end
 md"# Multiple dispatch and machine code"
 
 # ╔═╡ f0b1e0ba-642e-4a86-b5d7-8b6ecfc57f39
-@code_native +(1.0, 2.0)
+@code_native println(1, 2)
 
 # ╔═╡ 970fc82e-4aaf-4234-9e3e-e88a5f5a5e4b
 md"# Startuplab canon"
@@ -175,6 +175,9 @@ range_func(angle, velocity) = extract_range(simulate_projectile(angle, velocity)
 # ╔═╡ bc39a842-53c1-4821-8f65-3e77f48bc9c2
 gradient = Zygote.gradient(range_func, angle, velocity)
 
+# ╔═╡ bf4b4647-72c0-4045-993d-ff09f6a3aa7c
+@code_native Zygote.gradient(range_func, angle, velocity)
+
 # ╔═╡ 51ccc85b-32c8-4167-87c7-fd44211e82fb
 md"# Uncertainty quantification"
 
@@ -189,8 +192,8 @@ velocity_uncertain = measurement(velocity, uncertainty)
 
 # ╔═╡ 0241007d-6e08-4401-a8cf-d059a6d2f721
 begin
-	trajectory_uncertain = simulate_projectile(angle_uncertain, velocity_uncertain)
-	range_uncertain = extract_range(trajectory_uncertain)
+	trajectory_uncertain = simulate_projectile.(angle_uncertain, velocity_uncertain)
+	range_uncertain = extract_range.(trajectory_uncertain)
 end
 
 # ╔═╡ 7be1c74c-388b-416a-baaa-ca9941b60c5b
@@ -816,9 +819,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
 deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "18144f3e9cbe9b15b070288eef858f71b291ce37"
+git-tree-sha1 = "a2d09619db4e765091ee5c6ffe8872849de0feea"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.27"
+version = "0.3.28"
 
     [deps.LogExpFunctions.extensions]
     LogExpFunctionsChainRulesCoreExt = "ChainRulesCore"
@@ -987,9 +990,9 @@ version = "1.10.0"
 
 [[deps.PlotThemes]]
 deps = ["PlotUtils", "Statistics"]
-git-tree-sha1 = "1f03a2d339f42dca4a4da149c7e15e9b896ad899"
+git-tree-sha1 = "6e55c6841ce3411ccb3457ee52fc48cb698d6fb0"
 uuid = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
-version = "3.1.0"
+version = "3.2.0"
 
 [[deps.PlotUtils]]
 deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "Statistics"]
@@ -1618,6 +1621,7 @@ version = "1.4.1+1"
 # ╠═ce5a041a-e5f8-4545-9edd-b797e68f1508
 # ╠═3c7fc219-e6a7-4932-9a8c-21bd1e4c2ddb
 # ╠═bc39a842-53c1-4821-8f65-3e77f48bc9c2
+# ╠═bf4b4647-72c0-4045-993d-ff09f6a3aa7c
 # ╠═51ccc85b-32c8-4167-87c7-fd44211e82fb
 # ╠═a194b913-6306-4397-b387-72ac17b33330
 # ╠═b3fa5cb9-ebfb-4755-874e-e5a3316d4de4
