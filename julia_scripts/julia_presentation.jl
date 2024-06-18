@@ -25,26 +25,11 @@ begin
 	using PlutoUI
 end
 
-# ╔═╡ 3aa8c012-2ce1-11ef-3604-7d9959c14a39
-md"# Structs"
-
-# ╔═╡ 5448992f-8e70-4e55-8380-fe9f499e392c
-struct CoolStruct
-	x
-	y
-end
-
 # ╔═╡ 45a4da3e-8976-49d7-8cf1-9c7bc9429143
-md"# Multiple dispatch"
-
-# ╔═╡ 88f2b279-2ed9-4726-8976-9a8dfd6fc9d7
-
-
-# ╔═╡ 90b58434-9d12-40e7-b0fa-543fc09412ef
-md"# Machine code"
+md"# Multiple dispatch and machine code"
 
 # ╔═╡ f0b1e0ba-642e-4a86-b5d7-8b6ecfc57f39
-
+@code_native +(1.0, 2.0)
 
 # ╔═╡ 970fc82e-4aaf-4234-9e3e-e88a5f5a5e4b
 md"# Startuplab canon"
@@ -60,7 +45,7 @@ begin
 end
 
 # ╔═╡ 8eb28375-eb88-4780-b937-a51ab0111146
-md" ## Define our canon"
+md" ## Define canon physics"
 
 # ╔═╡ 863a4ab8-d82a-46ef-b66b-fe0b856527b0
 begin
@@ -112,10 +97,120 @@ begin
 end
 
 # ╔═╡ 18dba5e2-674b-433c-b8b7-df061ef66f12
-extract_range(trajectory)
+md"## Canon shoots $(extract_range(trajectory)) meters
+
+(Cool, live updated markdown!!!)
+"
 
 # ╔═╡ 53c878af-b57a-4f76-bf0f-240bba39485b
+md"### What if we want to utilize some of these sweet cores we have on our fancy machines?"
 
+# ╔═╡ 1926a5d0-9150-44a2-80c9-a32c741f9b88
+md"# Multiprocessing"
+
+# ╔═╡ 8d40d6b1-a029-4b5f-b729-cf597c2fb6e6
+addprocs(4)
+
+# ╔═╡ 94340fa9-8f13-44c2-acea-e16a9d95defa
+@everywhere begin
+    const g = 9.81
+    const c = 0.1
+    const dt = 0.01
+    
+    function euler_step(u, du, dt)
+        return u .+ dt .* du
+    end
+
+    function projectile_dynamics(u)
+        x, y, vx, vy = u
+        du = [vx, vy, -c * vx, -g - c * vy]
+        return du
+    end
+
+    function simulate_projectile(angle, velocity, tspan=(0.0, 10.0))
+        u = [0.0, 0.0, velocity * cos(angle), velocity * sin(angle)]
+        trajectory = [copy(u)]
+        t = tspan[1]
+
+        while t < tspan[2] && u[2] >= 0  # Stop if the projectile hits the ground
+            du = projectile_dynamics(u)
+            u = euler_step(u, du, dt)
+            trajectory = vcat(trajectory, [copy(u)])  # Concatenate arrays instead of using push!
+            t += dt
+        end
+
+        return trajectory
+    end
+
+    function extract_range(trajectory)
+        return maximum(map(x -> x[1], trajectory))
+    end
+end
+
+# ╔═╡ c0b3bd18-e0c6-40d2-84fc-c2452f4e4c8a
+angles = range(0, stop=π/2, length=10)
+
+# ╔═╡ 3af517dd-eae3-46c5-93ae-850c0433bbe0
+@distributed for i in 1:length(angles)
+    trajectory = simulate_projectile(angles[i], velocity)
+    println("Range at angle $(angles[i]): ", extract_range(trajectory))
+end
+
+# ╔═╡ b1aeb8be-475c-4c94-98c3-e62f80306431
+md"# Multithreading"
+
+# ╔═╡ 0d48a871-3254-4349-a954-c9227acf7215
+@threads for i in 1:length(angles)
+    id = Threads.threadid()
+    trajectory = simulate_projectile(angles[i], velocity)
+    println("Range at angle $(angles[i]): ", extract_range(trajectory), " (Thread: $id)")
+end
+
+# ╔═╡ ce5a041a-e5f8-4545-9edd-b797e68f1508
+md"# Automatic differentiation"
+
+# ╔═╡ 3c7fc219-e6a7-4932-9a8c-21bd1e4c2ddb
+range_func(angle, velocity) = extract_range(simulate_projectile(angle, velocity))
+
+# ╔═╡ bc39a842-53c1-4821-8f65-3e77f48bc9c2
+gradient = Zygote.gradient(range_func, angle, velocity)
+
+# ╔═╡ 51ccc85b-32c8-4167-87c7-fd44211e82fb
+md"# Uncertainty quantification"
+
+# ╔═╡ a194b913-6306-4397-b387-72ac17b33330
+@bind uncertainty Slider(0.0:0.001:1.0, default=0.1)
+
+# ╔═╡ b3fa5cb9-ebfb-4755-874e-e5a3316d4de4
+angle_uncertain = measurement(angle, uncertainty)
+
+# ╔═╡ b611e2a6-a26b-473c-9625-3432a3888053
+velocity_uncertain = measurement(velocity, uncertainty)
+
+# ╔═╡ 0241007d-6e08-4401-a8cf-d059a6d2f721
+begin
+	trajectory_uncertain = simulate_projectile(angle_uncertain, velocity_uncertain)
+	range_uncertain = extract_range(trajectory_uncertain)
+end
+
+# ╔═╡ 7be1c74c-388b-416a-baaa-ca9941b60c5b
+begin
+	y = map(x -> Measurements.value(x[2]), trajectory_uncertain)
+	y_uncertainty = map(x -> Measurements.uncertainty(x[2]), trajectory_uncertain)
+	x = map(x -> Measurements.value(x[1]), trajectory_uncertain)
+	
+	plot(x, y, xlabel="x", ylabel="y", label="Trajectory (Uncertain)", xlimits=(0,40), ylimits=(0,20))
+	plot!(x, y .+ y_uncertainty, label="Upper Bound", color=:red)
+	plot!(x, y .- y_uncertainty, label="Lower Bound", color=:red)
+
+	plot!([extract_range(trajectory_uncertain)], [0], color=:red, markersize=10, marker=:circle)
+end
+
+# ╔═╡ 563eda9d-4890-47ce-85fe-8e90845b5522
+println("Range with uncertainty: ", range_uncertain)
+
+# ╔═╡ febd7332-d487-4900-bc12-f9c94f9414ac
+println("Uncertainty in the range: ", Measurements.uncertainty(range_uncertain))
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1500,11 +1595,7 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╠═63ecaddf-d7e5-4a0d-b9bb-00e5a96802a0
-# ╟─3aa8c012-2ce1-11ef-3604-7d9959c14a39
-# ╠═5448992f-8e70-4e55-8380-fe9f499e392c
 # ╠═45a4da3e-8976-49d7-8cf1-9c7bc9429143
-# ╠═88f2b279-2ed9-4726-8976-9a8dfd6fc9d7
-# ╟─90b58434-9d12-40e7-b0fa-543fc09412ef
 # ╠═f0b1e0ba-642e-4a86-b5d7-8b6ecfc57f39
 # ╟─970fc82e-4aaf-4234-9e3e-e88a5f5a5e4b
 # ╟─83bc7113-f3ed-4be0-9d65-8d0ebf809586
@@ -1517,5 +1608,23 @@ version = "1.4.1+1"
 # ╠═eb7217a0-cf8c-45d9-bb47-68f8697eed01
 # ╠═18dba5e2-674b-433c-b8b7-df061ef66f12
 # ╠═53c878af-b57a-4f76-bf0f-240bba39485b
+# ╠═1926a5d0-9150-44a2-80c9-a32c741f9b88
+# ╠═8d40d6b1-a029-4b5f-b729-cf597c2fb6e6
+# ╠═94340fa9-8f13-44c2-acea-e16a9d95defa
+# ╠═c0b3bd18-e0c6-40d2-84fc-c2452f4e4c8a
+# ╠═3af517dd-eae3-46c5-93ae-850c0433bbe0
+# ╠═b1aeb8be-475c-4c94-98c3-e62f80306431
+# ╠═0d48a871-3254-4349-a954-c9227acf7215
+# ╠═ce5a041a-e5f8-4545-9edd-b797e68f1508
+# ╠═3c7fc219-e6a7-4932-9a8c-21bd1e4c2ddb
+# ╠═bc39a842-53c1-4821-8f65-3e77f48bc9c2
+# ╠═51ccc85b-32c8-4167-87c7-fd44211e82fb
+# ╠═a194b913-6306-4397-b387-72ac17b33330
+# ╠═b3fa5cb9-ebfb-4755-874e-e5a3316d4de4
+# ╠═b611e2a6-a26b-473c-9625-3432a3888053
+# ╠═0241007d-6e08-4401-a8cf-d059a6d2f721
+# ╠═7be1c74c-388b-416a-baaa-ca9941b60c5b
+# ╠═563eda9d-4890-47ce-85fe-8e90845b5522
+# ╠═febd7332-d487-4900-bc12-f9c94f9414ac
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
